@@ -1,0 +1,93 @@
+<section class="page">
+  <header class="page-head">
+    <div>
+      <h1 class="page-head__title">Comparação</h1>
+      <p class="page-head__sub">{{ store.compareSelection().length }} experimentos selecionados</p>
+    </div>
+    <span class="spacer"></span>
+    <button class="btn" type="button" (click)="store.view.set('welcome')">Fechar</button>
+  </header>
+
+  @if (store.compareSelection().length < 2) {
+    <div class="alert alert--warn">
+      Marque pelo menos dois experimentos na barra lateral, na caixinha ao lado do nome.
+    </div>
+  } @else if (carregando() && !resultado()) {
+    <div class="loading">Ajustando e comparando os experimentos…</div>
+  } @else if (resultado(); as r) {
+    <section class="card">
+      <header class="card__head">
+        <h2 class="card__title">Métricas e condições ótimas</h2>
+        <button class="chip" type="button" (click)="baixarTabela()">CSV</button>
+      </header>
+
+      <div class="tbl-wrap">
+        <table class="tbl tbl--compact">
+          <thead>
+            <tr>
+              <th class="tbl__left">Experimento</th>
+              <th class="tbl__num">Fat.</th>
+              <th class="tbl__num">Ens.</th>
+              <th class="tbl__num">R²</th>
+              <th class="tbl__num">R² aj.</th>
+              <th class="tbl__num">Q²</th>
+              <th class="tbl__num">F</th>
+              <th class="tbl__num">p (F)</th>
+              <th class="tbl__num">Y ótimo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (it of r.items; track it.file) {
+              <tr>
+                <td class="tbl__left">
+                  <strong>{{ it.name }}</strong>
+                  <span class="tbl__sub">{{ it.resp_label }}</span>
+                </td>
+                <td class="tbl__num">{{ it.info.k }}</td>
+                <td class="tbl__num">{{ it.info.n_total }}</td>
+                <td class="tbl__num">{{ fixed(it.kpis.r2, 4) }}</td>
+                <td class="tbl__num">{{ fixed(it.kpis.r2_adj, 4) }}</td>
+                <td class="tbl__num">{{ fixed(it.kpis.q2, 4) }}</td>
+                <td class="tbl__num">{{ fixed(it.kpis.f, 2) }}</td>
+                <td class="tbl__num">{{ sci(it.kpis.p_f) }}</td>
+                <td class="tbl__num">
+                  <strong>{{ fixed(it.optimum.y, 2) }}</strong>
+                  @if (it.optimum.truncated) {
+                    <span class="pill pill--warn" title="o polinômio estima além do limite físico">trunc.</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="cond-grid">
+        @for (it of r.items; track it.file) {
+          <div class="cond">
+            <div class="cond__name">{{ it.name }}</div>
+            @for (f of it.optimum.factors; track $index) {
+              <div class="cond__row">
+                <span class="cond__label">{{ f.name }}</span>
+                <span class="cond__value">{{ f.real }} {{ f.unit }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <p class="hint">
+        Q² é a capacidade de previsão medida deixando um ensaio de fora por vez; R² só descreve os dados usados no
+        ajuste. Entre dois modelos com R² parecido, o de maior Q² prevê melhor.
+      </p>
+    </section>
+
+    <div class="chart-grid">
+      <div class="chart-card"><app-compare-metrics [data]="r.charts.metricas" /></div>
+      <div class="chart-card"><app-compare-coefs [data]="r.charts.coeficientes" /></div>
+      <div class="chart-card chart-card--wide">
+        <app-compare-scatter [data]="r.charts.previsto_observado" />
+      </div>
+    </div>
+  }
+</section>

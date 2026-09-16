@@ -1,0 +1,205 @@
+@if (store.analysis(); as a) {
+  <div class="toolbar">
+    <label class="field field--inline">
+      <span>Significância</span>
+      <select (change)="setSignificance($event)">
+        @for (o of sigOptions; track o.v) {
+          <option [value]="o.v" [selected]="o.v === a.significance">{{ o.l }}</option>
+        }
+      </select>
+    </label>
+    <label class="field field--inline">
+      <span>Transformação</span>
+      <select (change)="setTransform($event)">
+        <option value="none" [selected]="a.transform === 'none'">Nenhuma</option>
+        <option value="logit" [selected]="a.transform === 'logit'">Logit</option>
+      </select>
+    </label>
+  </div>
+
+  @if (a.logit; as lg) {
+    <div class="alert" [class.alert--warn]="lg.worsens" [class.alert--info]="!lg.worsens">
+      <div>
+        Modelo ajustado na escala logit: z = ln(Y/(100−Y)). Coeficientes, Pareto e ANOVA vivem nessa escala;
+        superfícies, otimização e previsões já retornam em % e ficam presas a (0, 100) por construção.
+        @if (lg.r2_resp !== null) {
+          R² na escala original: <strong>{{ fixed(lg.r2_resp, 4) }}</strong>.
+        }
+        @if (lg.worsens) {
+          <strong>Atenção:</strong> para estes dados a transformação está PIORANDO o ajuste (o modelo bruto com os
+          mesmos termos tem R² = {{ fixed(lg.r2_raw_ref, 4) }}). A logit só ajuda quando as respostas se amontoam perto
+          de 0 ou 100.
+        }
+      </div>
+    </div>
+  }
+
+  <div class="kpis">
+    <div class="kpi kpi--blue">
+      <span class="kpi__label">R²</span><span class="kpi__value">{{ fixed(a.kpis.r2, 4) }}</span>
+    </div>
+    <div [class]="'kpi kpi--' + (a.kpis.r2_adj > 0.7 ? 'good' : 'mid')">
+      <span class="kpi__label">R² ajustado</span><span class="kpi__value">{{ fixed(a.kpis.r2_adj, 4) }}</span>
+    </div>
+    <div [class]="'kpi kpi--' + tone(a.kpis.q2, 0.5, 0.2)">
+      <span class="kpi__label">Q² (previsão)</span><span class="kpi__value">{{ fixed(a.kpis.q2, 4) }}</span>
+    </div>
+    <div class="kpi kpi--teal">
+      <span class="kpi__label">F</span><span class="kpi__value">{{ fixed(a.kpis.f, 2) }}</span>
+    </div>
+    <div [class]="'kpi kpi--' + (a.kpis.p_f < a.significance ? 'good' : 'bad')">
+      <span class="kpi__label">p (F)</span><span class="kpi__value">{{ sci(a.kpis.p_f) }}</span>
+    </div>
+  </div>
+
+  @if (a.kpis.q2 < 0) {
+    <div class="alert alert--warn">
+      <div>
+        <strong>Q² negativo não é erro de cálculo.</strong> Ele compara a previsão deixa-um-fora com simplesmente
+        chutar a média: negativo quer dizer que, retirando um ensaio por vez e reajustando, o modelo erra mais do que a
+        média erraria. Com {{ a.kpis.n_obs }} ensaios para {{ a.kpis.n_params }} parâmetros, cada ponto carrega o
+        próprio ajuste. Leia como <em>sem poder preditivo demonstrável neste tamanho de amostra</em> — o R² e a falta de
+        ajuste continuam válidos para descrever os dados.
+      </div>
+    </div>
+  }
+
+  <section class="card">
+    <header class="card__head">
+      <h2 class="card__title">
+        {{ a.transform === 'logit' ? 'Equação do modelo (escala logit)' : 'Equação do modelo' }}
+      </h2>
+    </header>
+    <div class="eq" [innerHTML]="equationHtml()"></div>
+    <div class="legend">
+      @for (l of a.equation.legend; track $index) {
+        <span class="legend__item">
+          <span class="legend__sym" [innerHTML]="l.symbol"></span> {{ l.name }}@if (l.unit) { ({{ l.unit }})}
+        </span>
+      }
+    </div>
+    <p class="hint">
+      Equação em variáveis <strong>codificadas</strong>: cada x<sub>i</sub> vai de −α a +α, por isso os coeficientes são
+      comparáveis entre si. Para prever a partir de valores reais, codifique antes: x<sub>i</sub> = (valor − centro) /
+      passo.
+    </p>
+  </section>
+
+  <section class="card">
+    <header class="card__head">
+      <h2 class="card__title">Coeficientes</h2>
+      <span class="spacer"></span>
+      <button class="chip" type="button" (click)="baixarCoeficientes()">CSV</button>
+    </header>
+    <div class="tbl-wrap">
+      <table class="tbl tbl--compact">
+        <thead>
+          <tr>
+            <th class="tbl__left">Termo</th>
+            <th class="tbl__num">Coef.</th>
+            <th class="tbl__num">Erro</th>
+            <th class="tbl__num">t</th>
+            <th class="tbl__num">p</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of a.coefficients; track $index) {
+            <tr>
+              <td class="tbl__left">
+                <strong [innerHTML]="c.symbol"></strong>
+                <span class="tbl__sub">{{ c.caption }}</span>
+              </td>
+              <td class="tbl__num">{{ fixed(c.coef) }}</td>
+              <td class="tbl__num">{{ fixed(c.se) }}</td>
+              <td class="tbl__num">{{ fixed(c.t) }}</td>
+              <td class="tbl__num">{{ fixed(c.p, 3) }}</td>
+              <td>
+                <span [class]="'pill pill--' + (c.significant ? 'sig' : 'ns')">{{ c.significant ? 'sig' : 'ns' }}</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <header class="card__head">
+      <h2 class="card__title">Análise de variância</h2>
+      <span class="spacer"></span>
+      <button class="chip" type="button" (click)="baixarAnova()">CSV</button>
+    </header>
+    <div class="tbl-wrap">
+      <table class="tbl tbl--compact">
+        <thead>
+          <tr>
+            @for (h of anovaHeads; track h; let i = $index) {
+              <th [class]="i === 0 ? 'tbl__left' : 'tbl__num'">{{ h }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of a.anova; track $index) {
+            <tr>
+              @for (c of anovaCols; track c; let i = $index) {
+                <td [class]="i === 0 ? 'tbl__left' : 'tbl__num'">{{ row[c] }}</td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="metrics-line">
+      <span>s = {{ fixed(a.kpis.s) }}</span>
+      <span>RMSE = {{ fixed(a.kpis.rmse) }}</span>
+      <span>RMSE-CV = {{ fixed(a.kpis.rmse_cv) }}</span>
+      <span>MAE-CV = {{ fixed(a.kpis.mae_cv) }}</span>
+    </div>
+    <p class="hint">
+      O F tabelado é o valor crítico no nível α escolhido. Para a regressão queremos F calculado acima dele; para a
+      falta de ajuste, abaixo.
+    </p>
+  </section>
+
+  @if (a.lack_of_fit; as lof) {
+    <details class="acc">
+      <summary>Teste de falta de ajuste</summary>
+      <div class="acc__body">
+        <p class="mono">
+          F calculado = {{ fixed(lof.f, 3) }} {{ comparison(lof.below_crit) }} F tabelado =
+          {{ lof.f_crit === null ? '-' : fixed(lof.f_crit, 3) }} &nbsp;·&nbsp; p = {{ fixed(lof.p, 5) }}
+          <span [class]="'pill pill--' + (lof.ok ? 'ok' : 'warn')">{{ lof.ok ? 'ok' : 'atenção' }}</span>
+        </p>
+        <p class="hint">
+          @if (lof.ok) {
+            F calculado menor que o tabelado: a falta de ajuste não é significativa e o polinômio de 2ª ordem descreve
+            os dados.
+          } @else {
+            F calculado maior que o tabelado: sobra estrutura que o modelo quadrático não capturou. Em DCCR com erro
+            puro muito baixo isso é comum, porque o denominador do teste fica pequeno; compare com a magnitude do
+            resíduo antes de descartar o modelo.
+          }
+          Graus de liberdade: {{ lof.df_lof }} (falta de ajuste) e {{ lof.df_pe }} (erro puro).
+        </p>
+      </div>
+    </details>
+  }
+
+  @if (a.reference; as ref) {
+    <details class="acc">
+      <summary>Validação contra a fonte</summary>
+      <div class="acc__body">
+        <p><em>{{ ref.cite }}</em></p>
+        <div class="ref-row">
+          <span>R² publicado <strong class="mono">{{ fixed(ref.r2_pub, 4) }}</strong></span>
+          <span>R² calculado <strong class="mono">{{ fixed(ref.r2_calc, 4) }}</strong></span>
+          <span>
+            diferença <strong class="mono">{{ fixed(ref.diff, 4) }}</strong>
+            <span [class]="'pill pill--' + (ref.ok ? 'ok' : 'warn')">{{ ref.ok ? 'ok' : 'atenção' }}</span>
+          </span>
+        </div>
+      </div>
+    </details>
+  }
+}

@@ -1,0 +1,60 @@
+<section class="page">
+  <header class="page-head">
+    <div class="page-head__id">
+      <input
+        class="page-head__name"
+        type="text"
+        [value]="store.name()"
+        (change)="store.renomear(value($event))"
+        title="Nome do experimento"
+      />
+      <p class="page-head__sub">
+        @if (store.file()) {
+          <code>{{ store.file() }}</code>
+        } @else {
+          ainda não salvo
+        }
+        @if (store.dirty()) {
+          <span class="pill pill--warn">alterado</span>
+        }
+      </p>
+    </div>
+    <span class="spacer"></span>
+    <button class="btn btn--primary" type="button" [disabled]="!!store.busy()" (click)="store.salvar()">Salvar</button>
+  </header>
+
+  <nav class="tabs">
+    @for (t of abas(); track t.id) {
+      <button
+        type="button"
+        class="tab"
+        [class.tab--on]="aba() === t.id"
+        [disabled]="!t.liberada"
+        [title]="t.liberada ? t.label : 'Disponível depois da etapa anterior'"
+        (click)="ir(t.id, t.liberada)"
+      >
+        {{ t.label }}
+      </button>
+    }
+  </nav>
+
+  <div class="tab-panel">
+    @switch (aba()) {
+      @case ('fatores') {
+        <app-config />
+      }
+      @case ('dados') {
+        <app-data />
+      }
+      @case ('resultados') {
+        <app-results />
+      }
+      @case ('graficos') {
+        <app-plots />
+      }
+      @case ('otimizacao') {
+        <app-optimization />
+      }
+    }
+  </div>
+</section>

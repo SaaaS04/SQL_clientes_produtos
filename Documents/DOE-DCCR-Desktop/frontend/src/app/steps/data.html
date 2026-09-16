@@ -1,0 +1,141 @@
+@if (store.design(); as d) {
+  <div class="kpis">
+    <div class="kpi kpi--blue"><span class="kpi__label">Fatores</span><span class="kpi__value">{{ d.info.k }}</span></div>
+    <div class="kpi kpi--blue"><span class="kpi__label">Fatorial</span><span class="kpi__value">{{ d.info.n_factorial }}</span></div>
+    <div class="kpi kpi--mid"><span class="kpi__label">Axiais</span><span class="kpi__value">{{ d.info.n_axial }}</span></div>
+    <div class="kpi kpi--good"><span class="kpi__label">Centrais</span><span class="kpi__value">{{ d.info.n_center }}</span></div>
+    <div class="kpi kpi--teal"><span class="kpi__label">Total</span><span class="kpi__value">{{ d.info.n_total }}</span></div>
+  </div>
+
+  <section class="card">
+    <header class="card__head">
+      <h2 class="card__title">Níveis dos fatores</h2>
+      <span class="hint">codificação DCCR · α = {{ d.info.alpha.toFixed(4) }}</span>
+    </header>
+    <div class="tbl-wrap">
+      <table class="tbl tbl--compact">
+        <thead>
+          <tr>
+            <th class="tbl__left">Fator</th>
+            <th class="tbl__num th-axial">−α</th>
+            <th class="tbl__num th-level">−1</th>
+            <th class="tbl__num th-center">0</th>
+            <th class="tbl__num th-level">+1</th>
+            <th class="tbl__num th-axial">+α</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of d.level_table; track $index; let i = $index) {
+            <tr>
+              <td class="tbl__left">
+                <strong>X{{ i + 1 }}</strong> {{ row.name }}
+                @if (row.unit) {
+                  <span class="tbl__sub">{{ row.unit }}</span>
+                }
+              </td>
+              @for (v of row.values; track $index; let j = $index) {
+                <td class="tbl__num" [class]="'tbl__num lv-' + j">{{ v }}</td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <header class="card__head">
+      <h2 class="card__title">Matriz experimental</h2>
+      <div class="seg">
+        <button type="button" class="seg__btn" [class.seg__btn--on]="vista() === 'coded'" (click)="vista.set('coded')">
+          Codificado
+        </button>
+        <button type="button" class="seg__btn" [class.seg__btn--on]="vista() === 'real'" (click)="vista.set('real')">
+          Real
+        </button>
+      </div>
+      <span class="spacer"></span>
+      <span class="hint">{{ preenchidas() }} de {{ d.info.n_total }} respostas</span>
+      <button class="chip" type="button" (click)="baixar()">CSV</button>
+    </header>
+
+    <p class="hint">Execute os ensaios em ordem aleatória e digite a resposta observada de cada um.</p>
+
+    <div class="tbl-wrap tbl-wrap--tall">
+      <table class="tbl tbl--compact tbl--sticky">
+        <thead>
+          <tr>
+            <th class="tbl__num">N</th>
+            <th class="tbl__left">Tipo</th>
+            @if (vista() === 'coded') {
+              @for (nm of d.factor_names; track $index) {
+                <th class="tbl__num">x{{ $index + 1 }}</th>
+              }
+            } @else {
+              @for (nm of d.factor_names; track $index) {
+                <th class="tbl__num">{{ nm }}</th>
+              }
+            }
+            <th class="tbl__num tbl__resp">{{ d.resp_label }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of d.runs; track r.n; let i = $index) {
+            <tr>
+              <td class="tbl__num">{{ r.n }}</td>
+              <td class="tbl__left">
+                <span [class]="'pill pill--' + kinds[r.type].css">{{ kinds[r.type].short }}</span>
+              </td>
+              @if (vista() === 'coded') {
+                @for (c of r.coded; track $index) {
+                  <td class="tbl__num">{{ signed3(c) }}</td>
+                }
+              } @else {
+                @for (v of r.real; track $index) {
+                  <td class="tbl__num">{{ v }}</td>
+                }
+              }
+              <td class="tbl__num tbl__resp">
+                <input
+                  class="cell-input"
+                  type="number"
+                  step="any"
+                  [value]="store.responses()[i]"
+                  (change)="store.setResponse(i, number($event))"
+                />
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <header class="card__head">
+      <h2 class="card__title">Colar do Excel</h2>
+      <span class="hint">uma resposta por linha, na ordem da matriz</span>
+    </header>
+    <textarea
+      rows="6"
+      [value]="paste()"
+      (input)="paste.set(value($event))"
+      placeholder="45,26&#10;89,74&#10;83,99&#10;…&#10;&#10;Aceita vírgula ou ponto decimal, tabulação e ponto e vírgula."
+    ></textarea>
+    <div class="btn-row">
+      <button class="btn btn--info" type="button" (click)="fill()">Preencher</button>
+      <button class="btn btn--ghost" type="button" (click)="copyCurrent()">Copiar Y atual</button>
+      <button class="btn btn--ghost" type="button" (click)="store.zeroResponses()">Zerar</button>
+    </div>
+  </section>
+
+  <footer class="actions">
+    @for (p of store.meta()?.presets ?? []; track p.key) {
+      <button class="btn btn--ghost" type="button" (click)="store.loadExample(p.key)">Exemplo: {{ p.label }}</button>
+    }
+    <span class="spacer"></span>
+    <button class="btn btn--primary" type="button" [disabled]="!!store.busy()" (click)="store.analyze()">
+      Executar análise →
+    </button>
+  </footer>
+}

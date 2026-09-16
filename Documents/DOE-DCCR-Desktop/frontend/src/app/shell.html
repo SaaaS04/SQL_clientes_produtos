@@ -1,0 +1,195 @@
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar__brand">
+      <span class="brand__logo">D</span>
+      <span class="brand__name">DOE-DCCR</span>
+    </div>
+
+    @if (store.workspacePath()) {
+      <button class="folder" type="button" [title]="store.workspacePath()!" (click)="escolherPasta()">
+        <span class="folder__icon">🗂</span>
+        <span class="folder__path">{{ pastaCurta() }}</span>
+        <span class="folder__swap">trocar</span>
+      </button>
+
+      <button class="btn btn--primary btn--block" type="button" (click)="store.novoExperimento()">
+        + Novo experimento
+      </button>
+
+      <div class="sidebar__section">
+        <span class="sidebar__label">Experimentos</span>
+        <span class="sidebar__count">{{ store.experiments().length }}</span>
+      </div>
+
+      <nav class="exp-list">
+        @for (e of store.experiments(); track e.file) {
+          <div
+            class="exp"
+            [class.exp--on]="store.file() === e.file && store.view() === 'experiment'"
+            (click)="store.abrirExperimento(e.file)"
+          >
+            <input
+              class="exp__check"
+              type="checkbox"
+              title="Marcar para comparar"
+              [checked]="store.compareSelection().includes(e.file)"
+              (click)="alternarComparacao(e.file, $event)"
+            />
+            <span class="exp__body">
+              <span class="exp__name">{{ e.name }}</span>
+              <span class="exp__meta">
+                {{ e.k }} fatores
+                @if (e.summary) {
+                  · {{ resumoLinha(e.summary.r2) }}
+                } @else {
+                  · sem respostas
+                }
+              </span>
+            </span>
+            @if (confirmandoExclusao() === e.file) {
+              <button class="icon-btn icon-btn--danger" type="button" title="Confirmar" (click)="excluir(e.file, $event)">✓</button>
+              <button class="icon-btn" type="button" title="Cancelar" (click)="cancelarExclusao($event)">✕</button>
+            } @else {
+              <button class="icon-btn exp__del" type="button" title="Excluir" (click)="confirmarExclusao(e.file, $event)">🗑</button>
+            }
+          </div>
+        } @empty {
+          <p class="sidebar__empty">Nenhum experimento nesta pasta ainda.</p>
+        }
+      </nav>
+
+      <button
+        class="btn btn--block"
+        type="button"
+        [disabled]="store.compareSelection().length < 2"
+        (click)="store.abrirComparacao()"
+      >
+        ⇄ Comparar ({{ store.compareSelection().length }})
+      </button>
+    }
+
+    <footer class="sidebar__foot">
+      <button class="theme-toggle" type="button" (click)="store.toggleTheme()">
+        <span class="theme-toggle__icon">{{ store.theme() === 'dark' ? '☀' : '☾' }}</span>
+        {{ store.theme() === 'dark' ? 'Tema claro' : 'Tema escuro' }}
+      </button>
+      <div class="status">
+        <span [class]="'status__dot status__dot--' + store.status()"></span>
+        <span>
+          {{ store.status() === 'online' ? 'motor conectado' : store.status() === 'connecting' ? 'iniciando…' : 'motor offline' }}
+        </span>
+      </div>
+      @if (store.busy(); as b) {
+        <div class="status"><span class="spinner"></span>{{ b }}</div>
+      }
+    </footer>
+  </aside>
+
+  <main class="main">
+    @if (store.notice(); as n) {
+      <div [class]="'alert notice alert--' + n.level">
+        <div class="notice__body">
+          <p class="pre">{{ n.message }}</p>
+          @if (n.errors.length) {
+            <ul>
+              @for (e of n.errors; track $index) {
+                <li>{{ e }}</li>
+              }
+            </ul>
+          }
+        </div>
+        <button type="button" class="icon-btn" aria-label="Fechar" (click)="store.dismiss()">✕</button>
+      </div>
+    }
+
+    @if (store.status() !== 'online') {
+      <section class="page boot">
+        <span class="brand__logo brand__logo--big">D</span>
+        @if (store.status() === 'connecting') {
+          <p>Iniciando o motor de cálculo…</p>
+        } @else {
+          <div class="alert alert--error">
+            <div>
+              <strong>O motor de cálculo não está respondendo.</strong><br />
+              No app instalado ele sobe sozinho; em desenvolvimento, rode <code>python -m doe_api</code>. Continuo
+              tentando a cada 2 segundos.
+            </div>
+          </div>
+        }
+      </section>
+    } @else if (!store.workspacePath()) {
+      <section class="page welcome">
+        <h1 class="welcome__title">Escolha uma pasta de trabalho</h1>
+        <p class="welcome__sub">
+          Cada experimento vira um arquivo <code>.doe.json</code> dentro dela. Não há banco de dados: para levar o
+          trabalho para outro computador, basta copiar a pasta.
+        </p>
+        @if (nativo) {
+          <button class="btn btn--primary" type="button" (click)="escolherPasta()">Escolher pasta…</button>
+        } @else {
+          <div class="folder-form">
+            <input
+              type="text"
+              placeholder="C:\Users\voce\Documents\MeusExperimentos"
+              [value]="caminhoDigitado()"
+              (input)="caminhoDigitado.set(value($event))"
+              (keydown.enter)="abrirDigitada()"
+            />
+            <button class="btn btn--primary" type="button" (click)="abrirDigitada()">Abrir</button>
+          </div>
+          <p class="hint">
+            No app desktop aparece o seletor de pastas do Windows. No navegador, digite o caminho — a pasta é criada se
+            ainda não existir.
+          </p>
+        }
+      </section>
+    } @else {
+      @switch (store.view()) {
+        @case ('experiment') {
+          <app-experiment />
+        }
+        @case ('compare') {
+          <app-compare />
+        }
+        @default {
+          <section class="page welcome">
+            <h1 class="welcome__title">
+              {{ store.experiments().length ? 'Abra um experimento' : 'Comece um experimento' }}
+            </h1>
+            <p class="welcome__sub">Pasta atual: <code>{{ store.workspacePath() }}</code></p>
+            <div class="btn-row">
+              <button class="btn btn--primary" type="button" (click)="store.novoExperimento()">+ Novo experimento</button>
+              @if (store.experiments().length > 1) {
+                <button
+                  class="btn btn--ghost"
+                  type="button"
+                  [disabled]="store.compareSelection().length < 2"
+                  (click)="store.abrirComparacao()"
+                >
+                  ⇄ Comparar selecionados
+                </button>
+              }
+            </div>
+            @if (store.experiments().length) {
+              <div class="cards">
+                @for (e of store.experiments(); track e.file) {
+                  <button class="exp-card" type="button" (click)="store.abrirExperimento(e.file)">
+                    <span class="exp-card__name">{{ e.name }}</span>
+                    <span class="exp-card__meta">{{ e.k }} fatores · {{ e.resp_name }}</span>
+                    @if (e.summary) {
+                      <span class="exp-card__stats">
+                        R² {{ e.summary.r2.toFixed(4) }} · Q² {{ e.summary.q2.toFixed(3) }}
+                      </span>
+                    } @else {
+                      <span class="exp-card__stats">sem respostas</span>
+                    }
+                  </button>
+                }
+              </div>
+            }
+          </section>
+        }
+      }
+    }
+  </main>
+</div>

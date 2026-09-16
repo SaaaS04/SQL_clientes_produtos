@@ -1,0 +1,59 @@
+@if (dados(); as d) {
+  <div class="chart-grid">
+    <div class="chart-card">
+      <app-pareto-chart [data]="d.pareto" [fileName]="arquivo('pareto')" />
+    </div>
+    <div class="chart-card">
+      <app-effects-chart [terms]="d.effects.terms" [fileName]="arquivo('coeficientes')" />
+    </div>
+    <div class="chart-card">
+      <app-pred-actual-chart [data]="d.pred_actual" [fileName]="arquivo('experimental-x-predito')" />
+    </div>
+    <div class="chart-card">
+      <app-normal-chart [data]="d.normal" [fileName]="arquivo('probabilidade-normal')" />
+    </div>
+  </div>
+
+  @if (d.pairs.length) {
+    <div class="sec-head">
+      <h3 class="sec-head__title">Superfícies de resposta</h3>
+      <p class="sec-head__sub">
+        {{ d.pairs.length }} par(es) de fatores · os fatores fora dos eixos ficam no ponto central
+      </p>
+    </div>
+
+    @if (d.pairs.length > 1) {
+      <div class="seg">
+        @for (p of d.pairs; track $index) {
+          <button
+            type="button"
+            class="seg__btn"
+            [class.seg__btn--on]="par() === $index"
+            (click)="selecionarPar($index)"
+          >
+            {{ p.label }}
+          </button>
+        }
+      </div>
+    }
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        @if (superficie(); as s) {
+          <app-surface-chart [mesh]="s.surface" [fileName]="arquivo('superficie')" />
+        } @else {
+          <div class="loading">Calculando a malha…</div>
+        }
+      </div>
+      <div class="chart-card">
+        @if (superficie(); as s) {
+          <app-contour-chart [mesh]="s.contour" [fileName]="arquivo('contorno')" />
+        } @else {
+          <div class="loading">Calculando a malha…</div>
+        }
+      </div>
+    </div>
+  }
+} @else {
+  <div class="loading">Preparando os gráficos…</div>
+}
