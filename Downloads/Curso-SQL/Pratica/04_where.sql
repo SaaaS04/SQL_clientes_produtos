@@ -24,3 +24,4 @@ FROM produtos
 -- ('Churn_2pp', 'Churn_5pp', 'Churn_10pp')
 
 WHERE DescCategoriaProduto = 'churn_model'
+
