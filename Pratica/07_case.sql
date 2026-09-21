@@ -20,6 +20,8 @@ SELECT idcliente,
 
 FROM clientes
 
+WHERE flPonei = 1
+
 ORDER BY qtdePontos DESC
 
  
