@@ -9,6 +9,7 @@ AND qtdepontos > 0
 
 
 GROUP BY idcliente
+
 ORDER BY totalPontos DESC
 
 LIMIT 1
