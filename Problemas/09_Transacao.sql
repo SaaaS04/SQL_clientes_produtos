@@ -8,7 +8,7 @@ SELECT qtdePontos,
             WHEN qtdePontos <= 10 THEN 'Baixo'
             WHEN qtdePontos < 500 THEN 'Medio'
             WHEN qtdePontos >= 500 THEN 'Alto'
-        END AS class
+        END AS flQtdePontos
 
 FROM transacoes
 
