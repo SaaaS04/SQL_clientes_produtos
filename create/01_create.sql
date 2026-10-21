@@ -1,7 +1,6 @@
+DROP TABLE if EXISTS relatorio_diario;
 
-DROP TABLE if EXISTS relatório_diario;
-
-CREATE TABLE if NOT EXISTS relatório_diario AS 
+CREATE TABLE if NOT EXISTS relatorio_diario AS 
 
 WITH tb_transacoes_dia AS (
     SELECT 
@@ -26,3 +25,4 @@ SELECT *
 FROM tb_acum;
 
 SELECT * FROM relatório_diario;
+
