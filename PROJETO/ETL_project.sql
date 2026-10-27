@@ -27,11 +27,17 @@ tb_sumario_transacoes AS (
             sum(qtdePontos) AS saldoPontos,
 
             sum(CASE WHEN qtdePontos > 0 THEN qtdePontos else 0 END) AS qtdePontosPosVida,
-
             sum(CASE WHEN qtdePontos > 0 AND diffDate <= 56 THEN qtdePontos ELSE 0 END) as qtdePontosPos56,
             sum(CASE WHEN qtdePontos > 0 AND diffDate <= 28 THEN qtdePontos ELSE 0 END) as qtdePontosPos28,
             sum(CASE WHEN qtdePontos > 0 AND diffDate <= 14 THEN qtdePontos ELSE 0 END) as qtdePontosPos14,
-            sum(CASE WHEN qtdePontos > 0 AND diffDate <= 7 THEN qtdePontos ELSE 0 END) as qtdePontosPos7
+            sum(CASE WHEN qtdePontos > 0 AND diffDate <= 7 THEN qtdePontos ELSE 0 END) as qtdePontosPos7,
+
+            sum(CASE WHEN qtdePontos < 0 THEN qtdePontos else 0 END) AS qtdePontosNegVida,
+            sum(CASE WHEN qtdePontos < 0 AND diffDate <= 56 THEN qtdePontos ELSE 0 END) as qtdePontosNeg56,
+            sum(CASE WHEN qtdePontos < 0 AND diffDate <= 28 THEN qtdePontos ELSE 0 END) as qtdePontosNeg28,
+            sum(CASE WHEN qtdePontos < 0 AND diffDate <= 14 THEN qtdePontos ELSE 0 END) as qtdePontosNeg14,
+            sum(CASE WHEN qtdePontos < 0 AND diffDate <= 7 THEN qtdePontos ELSE 0 END) as qtdePontosNeg7
+
 
 FROm tb_transacoes
 GROUP BY IdCliente
