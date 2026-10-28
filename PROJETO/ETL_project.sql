@@ -3,15 +3,16 @@ WITH tb_transacoes AS (
             IdCliente,
             qtdePontos,
             datetime(substr(DtCriacao,1,19)) AS dtCriacao,
-            julianday((SELECT max(substr(DtCriacao,1,10)) FROM transacoes)) - julianday(substr(DtCriacao,1,10)) AS diffDate,
+            julianday('2025-08-01') - julianday(substr(DtCriacao,1,10)) AS diffDate,
             CAST(strftime('%H', substr(DtCriacao,1,19)) AS INTEGER) AS dtHora
-    FROM transacoes 
+    FROM transacoes
+    WHERE DtCriacao < '2025-06-01'
 ),
 
 tb_cliente AS (
         SELECT IdCliente,
         datetime(substr(DtCriacao,1,19)) AS dtCriacao,
-        julianday('now') - julianday(substr(DtCriacao,1,10)) AS idadeBase
+        julianday('2025-06-01') - julianday(substr(DtCriacao,1,10)) AS idadeBase
 
     FROM clientes
 ),
@@ -172,7 +173,9 @@ tb_join AS (
     AND t9.rnPeriodo = 1
 )
 
-SELECT  *,
+SELECT  '2025-06-01' AS dtRef,
+        *,
         1. * qtdeTransacoes28 / qtdeTransacoesVida AS engajamento28Vida
 
 FROM tb_join
+
