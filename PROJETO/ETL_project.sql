@@ -172,4 +172,7 @@ tb_join AS (
     AND t9.rnPeriodo = 1
 )
 
-SELECT * FROM tb_join
+SELECT  *,
+        1. * qtdeTransacoes28 / qtdeTransacoesVida AS engajamento28Vida
+
+FROM tb_join
